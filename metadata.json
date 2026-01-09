@@ -1,0 +1,5 @@
+{
+  "name": "WARRICK WALLET - Minimal Budget Dashboard",
+  "description": "A clean, blue-themed personal finance tracker with real-time balance calculations, transaction history, and local storage persistence.",
+  "requestFramePermissions": []
+}

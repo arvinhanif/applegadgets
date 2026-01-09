@@ -1,0 +1,1 @@
+// Logic moved to index.html to ensure zero-latency execution.
