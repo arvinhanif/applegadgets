@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import StatCard from './components/StatCard';
 import TransactionForm from './components/TransactionForm';
 import TransactionList from './components/TransactionList';
 import { Transaction, TransactionType, UserRole } from './types';
 
-// Constants for Virtual Backend
 const DB_USERS = 'WARRICK_GLOBAL_USERS';
 const DB_SESSION = 'WARRICK_ACTIVE_SESSION';
 const DB_TX_PREFIX = 'WARRICK_DATA_';
@@ -16,11 +15,13 @@ const App = () => {
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [authError, setAuthError] = useState('');
+  const [formType, setFormType] = useState<TransactionType>(TransactionType.EXPENSE);
 
-  // Initialization
+  const historyRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const savedUsers = JSON.parse(localStorage.getItem(DB_USERS) || '[]');
-    // Seed Admin if not exists
     if (!savedUsers.find((u: any) => u.username === 'arvin_hanif')) {
       const admin = { name: 'Arvin Hanif', email: 'admin@warrick.io', mobile: '0000', pass: 'arvin_hanif', role: UserRole.ADMIN, username: 'arvin_hanif' };
       savedUsers.push(admin);
@@ -41,30 +42,23 @@ const App = () => {
     setTransactions(data);
   };
 
+  const scrollTo = (ref: React.RefObject<HTMLDivElement>, type?: TransactionType) => {
+    if (type) setFormType(type);
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
   const handleSignup = (e: any) => {
     e.preventDefault();
     const fd = new FormData(e.target);
     const email = fd.get('email') as string;
     const mobile = fd.get('mobile') as string;
-    
     if (allUsers.find(u => u.email === email || u.mobile === mobile)) {
-      alert("Account already exists with this Email or Mobile.");
-      return;
+      alert("Account already exists."); return;
     }
-
-    const newUser = {
-      name: fd.get('name'),
-      email,
-      mobile,
-      pass: fd.get('pass'),
-      role: UserRole.USER,
-      username: email
-    };
-
+    const newUser = { name: fd.get('name'), email, mobile, pass: fd.get('pass'), role: UserRole.USER, username: email };
     const updatedUsers = [...allUsers, newUser];
     setAllUsers(updatedUsers);
     localStorage.setItem(DB_USERS, JSON.stringify(updatedUsers));
-    
     setCurrentUser(newUser);
     localStorage.setItem(DB_SESSION, JSON.stringify(newUser));
     setTransactions([]);
@@ -76,7 +70,6 @@ const App = () => {
     const fd = new FormData(e.target);
     const login = fd.get('login') as string;
     const pass = fd.get('pass') as string;
-
     const user = allUsers.find(u => (u.email === login || u.mobile === login || u.username === login) && u.pass === pass);
     if (user) {
       setCurrentUser(user);
@@ -93,7 +86,6 @@ const App = () => {
     e.preventDefault();
     const id = (document.getElementById('adm-id') as HTMLInputElement).value;
     const pass = (document.getElementById('adm-pass') as HTMLInputElement).value;
-
     if (id === 'arvin_hanif' && pass === 'arvin_hanif') {
       const admin = allUsers.find(u => u.username === 'arvin_hanif');
       setCurrentUser(admin);
@@ -132,7 +124,6 @@ const App = () => {
             <h1 className="text-5xl font-extrabold tracking-tighter text-slate-900">WARRICK<span className="text-blue-600">.</span></h1>
             <p className="text-[11px] font-black text-blue-600 uppercase tracking-[0.5em] mt-2">Powered by Arvin</p>
           </div>
-
           <div className="bg-white p-10 rounded-[3rem] shadow-2xl shadow-slate-200/60 border border-white">
             {view === 'signin' && (
               <form onSubmit={handleSignin} className="space-y-4 text-left">
@@ -141,23 +132,19 @@ const App = () => {
                 <input required name="pass" type="password" placeholder="Password" className="w-full px-6 py-4 bg-slate-50 rounded-2xl outline-none font-bold border-2 border-transparent focus:border-blue-500/10" />
                 {authError && <p className="text-rose-500 text-[10px] font-bold text-center uppercase tracking-widest">{authError}</p>}
                 <button type="submit" className="w-full py-5 bg-blue-600 text-white font-black rounded-2xl ios-button uppercase tracking-widest text-sm shadow-xl shadow-blue-600/20">Sign In</button>
-                <div className="py-2 flex items-center gap-4"><div className="flex-grow border-t"></div><span className="text-[10px] font-bold text-slate-300">OR</span><div className="flex-grow border-t"></div></div>
-                <button type="button" onClick={() => setView('admin')} className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl ios-button text-[11px] uppercase tracking-widest">Admin Portal</button>
+                <button type="button" onClick={() => setView('admin')} className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl ios-button text-[11px] uppercase tracking-widest mt-2">Admin Portal</button>
                 <p className="text-center text-sm font-bold text-slate-400 mt-4">New user? <button type="button" onClick={() => setView('signup')} className="text-blue-600">Create Account</button></p>
               </form>
             )}
-
             {view === 'admin' && (
               <form onSubmit={handleAdminSignin} className="space-y-4 text-left">
                 <h2 className="text-2xl font-black text-slate-900 mb-6 text-center">Admin Access</h2>
-                <input required id="adm-id" type="text" placeholder="Admin ID (arvin_hanif)" className="w-full px-6 py-4 bg-slate-50 rounded-2xl outline-none font-bold border-2 border-transparent focus:border-indigo-500/10" />
-                <input required id="adm-pass" type="password" placeholder="Passkey" className="w-full px-6 py-4 bg-slate-50 rounded-2xl outline-none font-bold border-2 border-transparent focus:border-indigo-500/10" />
-                {authError && <p className="text-rose-500 text-[10px] font-bold text-center uppercase tracking-widest">{authError}</p>}
-                <button type="submit" className="w-full py-5 bg-indigo-600 text-white font-black rounded-2xl ios-button uppercase tracking-widest text-sm shadow-xl shadow-indigo-600/20">Login Console</button>
+                <input required id="adm-id" type="text" placeholder="Admin ID" className="w-full px-6 py-4 bg-slate-50 rounded-2xl outline-none font-bold" />
+                <input required id="adm-pass" type="password" placeholder="Passkey" className="w-full px-6 py-4 bg-slate-50 rounded-2xl outline-none font-bold" />
+                <button type="submit" className="w-full py-5 bg-indigo-600 text-white font-black rounded-2xl uppercase tracking-widest text-sm shadow-xl">Login Console</button>
                 <button type="button" onClick={() => setView('signin')} className="w-full py-3 text-[10px] text-slate-400 font-bold uppercase tracking-widest">Back</button>
               </form>
             )}
-
             {view === 'signup' && (
               <form onSubmit={handleSignup} className="space-y-4 text-left">
                 <h2 className="text-2xl font-black text-slate-900 mb-6 text-center">Join Warrick</h2>
@@ -165,8 +152,8 @@ const App = () => {
                 <input required name="mobile" type="tel" placeholder="Mobile Number" className="w-full px-6 py-4 bg-slate-50 rounded-2xl outline-none font-bold" />
                 <input required name="email" type="email" placeholder="Email Address" className="w-full px-6 py-4 bg-slate-50 rounded-2xl outline-none font-bold" />
                 <input required name="pass" type="password" placeholder="Password" className="w-full px-6 py-4 bg-slate-50 rounded-2xl outline-none font-bold" />
-                <button type="submit" className="w-full py-5 bg-blue-600 text-white font-black rounded-2xl ios-button uppercase tracking-widest text-sm">Register</button>
-                <button type="button" onClick={() => setView('signin')} className="w-full py-3 text-center text-sm font-bold text-slate-400">Back to Login</button>
+                <button type="submit" className="w-full py-5 bg-blue-600 text-white font-black rounded-2xl uppercase tracking-widest text-sm">Register</button>
+                <button type="button" onClick={() => setView('signin')} className="w-full py-3 text-center text-sm font-bold text-slate-400">Back</button>
               </form>
             )}
           </div>
@@ -179,8 +166,30 @@ const App = () => {
   const expense = transactions.filter(t => t.type === TransactionType.EXPENSE).reduce((a, b) => a + b.amount, 0);
 
   return (
-    <div className="w-full min-h-screen py-8 px-6 md:px-12 lg:px-20">
-      <header className="max-w-[1400px] mx-auto flex justify-between items-center mb-12">
+    <div className="w-full min-h-screen py-8 px-6 md:px-12 lg:px-20 bg-[#f2f2f7]">
+      {/* Top Center Navigation Bar */}
+      <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] ios-glass p-2 rounded-full border border-white shadow-2xl flex items-center gap-1 backdrop-blur-3xl">
+        <button 
+          onClick={() => scrollTo(historyRef)}
+          className="px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 hover:bg-white transition-all ios-button"
+        >
+          History
+        </button>
+        <button 
+          onClick={() => scrollTo(formRef, TransactionType.EXPENSE)}
+          className="px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-rose-600 hover:bg-rose-50 transition-all ios-button"
+        >
+          Expense
+        </button>
+        <button 
+          onClick={() => scrollTo(formRef, TransactionType.INCOME)}
+          className="px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 hover:bg-emerald-50 transition-all ios-button"
+        >
+          Income
+        </button>
+      </nav>
+
+      <header className="max-w-[1400px] mx-auto flex justify-between items-center mb-16 pt-12">
         <div>
           <h1 className="text-4xl font-extrabold tracking-tighter text-slate-900">WARRICK<span className="text-blue-600">.</span></h1>
           <p className="text-[11px] font-black text-blue-600 uppercase tracking-[0.4em] ml-0.5 opacity-80">POWERED BY ARVIN</p>
@@ -217,21 +226,20 @@ const App = () => {
                   <p className="text-[10px] text-indigo-500 font-bold mt-1 uppercase tracking-widest">{u.mobile}</p>
                 </div>
               ))}
-              {allUsers.length <= 1 && <p className="text-slate-300 font-bold text-xs uppercase tracking-widest py-4">No Registered Users</p>}
             </div>
           </section>
         )}
 
-        <section className="ios-glass p-10 rounded-[3rem] border border-white shadow-2xl shadow-slate-200/40">
+        <section ref={formRef} className="ios-glass p-10 rounded-[3rem] border border-white shadow-2xl shadow-slate-200/40">
           <div className="flex items-center gap-4 mb-8">
             <div className="w-1.5 h-7 bg-blue-600 rounded-full"></div>
             <h3 className="text-2xl font-black text-slate-900 tracking-tight">Sync New Entry</h3>
           </div>
-          <TransactionForm onAdd={addTransaction} role={UserRole.ADMIN} />
+          <TransactionForm onAdd={addTransaction} initialType={formType} />
         </section>
 
-        <section className="ios-glass rounded-[3.5rem] border border-white shadow-2xl shadow-slate-200/40 overflow-hidden">
-          <TransactionList transactions={transactions} onDelete={deleteTransaction} currencySymbol="৳" role={UserRole.ADMIN} />
+        <section ref={historyRef} className="ios-glass rounded-[3.5rem] border border-white shadow-2xl shadow-slate-200/40 overflow-hidden">
+          <TransactionList transactions={transactions} onDelete={deleteTransaction} currencySymbol="৳" role={currentUser.role} />
         </section>
       </main>
     </div>

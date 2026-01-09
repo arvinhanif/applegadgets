@@ -1,15 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TransactionType, Transaction, UserRole } from '../types';
 
 interface TransactionFormProps {
   onAdd: (transaction: Omit<Transaction, 'id'>) => void;
-  role: UserRole;
+  initialType?: TransactionType;
 }
 
-const TransactionForm: React.FC<TransactionFormProps> = ({ onAdd, role }) => {
+const TransactionForm: React.FC<TransactionFormProps> = ({ onAdd, initialType }) => {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [type, setType] = useState<TransactionType>(TransactionType.EXPENSE);
+  const [type, setType] = useState<TransactionType>(initialType || TransactionType.EXPENSE);
+
+  useEffect(() => {
+    if (initialType) setType(initialType);
+  }, [initialType]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
